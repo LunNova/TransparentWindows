@@ -3,11 +3,9 @@ package nallar.transparentwindows;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.BaseTSD.LONG_PTR;
-import com.sun.jna.platform.win32.Kernel32;
-import com.sun.jna.platform.win32.Win32Exception;
+import com.sun.jna.platform.win32.*;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.platform.win32.WinDef.RECT;
-import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.ByteByReference;
 import com.sun.jna.ptr.IntByReference;
 
@@ -19,7 +17,7 @@ import java.util.List;
 public class TransparentWindows {
 	static int forceFullTrans = 255;
 	static int activeTrans = 255;
-	static int foreInactiveTrans = 100;
+	static int foreInactiveTrans = 40;
 	static int backTrans = 0;
 	static HWND lastActive;
 	static Thread mainThread;
@@ -53,6 +51,11 @@ public class TransparentWindows {
 		} catch (AWTException e) {
 			e.printStackTrace();
 		}
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void start() {
+				tray.remove(trayIcon);
+			}
+		});
 	}
 
 	public static void clearTransparencies() {
@@ -114,10 +117,25 @@ public class TransparentWindows {
 
 	}
 
-	private static boolean titleValid(String title) {
+	private static boolean titleValid(HWND hWnd, RECT r, String title) {
+		String exe = User32Fast.GetWindowExe(hWnd);
+		debugPrint("Title found " + title + " for " + hWnd + " of process " + User32Fast.GetWindowThreadProcessId(hWnd)
+			+ " with exe " + exe);
+
+		if (title.isEmpty() && exe.equals("C:\\Windows\\explorer.exe")) {
+			// Explorer-derp window?
+			int height = r.bottom - r.top;
+			debugPrint("Found likely explorer derp: " + height);
+		}
+
 		switch (title) {
 			case "":
 			case "Program Manager":
+				User32.INSTANCE.InvalidateRect(hWnd, null, true);
+				com.sun.jna.platform.win32.WinDef.DWORD f = new WinDef.DWORD(0x1 | 0x2 | 0x4 | 0x100 | 0x200 | 0x80);
+				User32.INSTANCE.RedrawWindow(hWnd, null, null, f);
+				User32.INSTANCE.UpdateWindow(hWnd);
+
 				return false;
 		}
 		return true;
@@ -142,7 +160,7 @@ public class TransparentWindows {
 					byte[] buffer = new byte[1024];
 					user32.GetWindowTextA(hWnd, buffer, buffer.length);
 					String title = Native.toString(buffer);
-					if (!titleValid(title)) {
+					if (!titleValid(hWnd, r, title)) {
 						return true;
 					}
 
@@ -215,6 +233,12 @@ public class TransparentWindows {
 		HWND GetWindow(HWND hWnd, int flag);
 	}
 
+	public interface Psapi extends com.sun.jna.win32.StdCallLibrary {
+		Psapi INSTANCE = (Psapi) Native.loadLibrary("psapi", Psapi.class);
+
+		int GetModuleFileNameExA(WinNT.HANDLE process, Pointer hModule, byte[] lpString, int nMaxCount);
+	}
+
 	public static class User32Fast {
 		static {
 			Native.register("User32");
@@ -223,6 +247,22 @@ public class TransparentWindows {
 		public static native LONG_PTR SetWindowLongPtrA(HWND hWnd, int index, LONG_PTR newLong);
 
 		public static native LONG_PTR GetWindowLongPtrA(HWND hWnd, int nIndex);
+
+		public static native int GetWindowThreadProcessId(HWND hwnd, IntByReference pid);
+
+		public static int GetWindowThreadProcessId(HWND hWnd) {
+			IntByReference pid = new IntByReference();
+			GetWindowThreadProcessId(hWnd, pid);
+			return pid.getValue();
+		}
+
+		public static String GetWindowExe(HWND hWnd) {
+			int pid = GetWindowThreadProcessId(hWnd);
+			WinNT.HANDLE process = Kernel32.INSTANCE.OpenProcess(0x1000, false, pid);
+			byte[] exePathname = new byte[512];
+			int result = Psapi.INSTANCE.GetModuleFileNameExA(process, new Pointer(0), exePathname, 512);
+			return Native.toString(exePathname).substring(0, result);
+		}
 
 		public static native boolean SetLayeredWindowAttributes(HWND hwnd, int crKey, byte bAlpha, int dwFlags);
 
