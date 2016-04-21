@@ -16,14 +16,14 @@ import java.util.List;
 
 public class TransparentWindows {
 	static int forceFullTrans = 255;
-	static int activeTrans = 255;
-	static int foreInactiveTrans = 40;
+	static int activeTrans = 150;
+	static int foreInactiveTrans = 25;
 	static int backTrans = 0;
 	static HWND lastActive;
 	static Thread mainThread;
 
 	private static void debugPrint(String s) {
-		System.out.println(s);
+		// System.out.println(s);
 	}
 
 	public static void systemTray() {
@@ -99,7 +99,7 @@ public class TransparentWindows {
 		}
 
 		if (activeWindowWrapper != null) {
-			activeWindowWrapper.setAlpha(255);
+			activeWindowWrapper.setAlpha(forceFullTrans);
 		}
 
 		for (WindowWrapper windowWrapper : windows) {
@@ -117,8 +117,22 @@ public class TransparentWindows {
 
 	}
 
-	private static boolean titleValid(HWND hWnd, RECT r, String title) {
+	private static boolean isValidWindowForTransparency(HWND hWnd, RECT r, String title) {
+		if (title.contains("Planetside2 v")) {
+			return false;
+		}
+
 		String exe = User32Fast.GetWindowExe(hWnd);
+
+		String exeLast = exe.substring(exe.lastIndexOf('\\') + 1);
+
+		switch (exeLast) {
+			case "Planetside2_x64.exe":
+			case "OBS.exe":
+			case "osu!.exe":
+				return false;
+		}
+
 		debugPrint("Title found " + title + " for " + hWnd + " of process " + User32Fast.GetWindowThreadProcessId(hWnd)
 			+ " with exe " + exe);
 
@@ -126,6 +140,10 @@ public class TransparentWindows {
 			// Explorer-derp window?
 			int height = r.bottom - r.top;
 			debugPrint("Found likely explorer derp: " + height);
+			if (height > 900) {
+				User32.INSTANCE.DestroyWindow(hWnd);
+				User32.INSTANCE.CloseWindow(hWnd);
+			}
 		}
 
 		switch (title) {
@@ -134,7 +152,6 @@ public class TransparentWindows {
 				User32.INSTANCE.InvalidateRect(hWnd, null, true);
 				com.sun.jna.platform.win32.WinDef.DWORD f = new WinDef.DWORD(0x1 | 0x2 | 0x4 | 0x100 | 0x200 | 0x80);
 				User32.INSTANCE.RedrawWindow(hWnd, null, null, f);
-				User32.INSTANCE.UpdateWindow(hWnd);
 
 				return false;
 		}
@@ -160,7 +177,7 @@ public class TransparentWindows {
 					byte[] buffer = new byte[1024];
 					user32.GetWindowTextA(hWnd, buffer, buffer.length);
 					String title = Native.toString(buffer);
-					if (!titleValid(hWnd, r, title)) {
+					if (!isValidWindowForTransparency(hWnd, r, title)) {
 						return true;
 					}
 
@@ -390,7 +407,7 @@ public class TransparentWindows {
 				return false;
 			}
 			int alpha = getAlpha();
-			if (alpha != forceFullTrans && alpha != foreInactiveTrans && alpha != activeTrans && alpha != backTrans) {
+			if (alpha != 255 && alpha != forceFullTrans && alpha != foreInactiveTrans && alpha != activeTrans && alpha != backTrans) {
 				System.out.println(title + " alpha is " + alpha);
 				return false;
 			}
