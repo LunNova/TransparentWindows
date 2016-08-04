@@ -15,7 +15,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 object TransparentWindows {
-	private val POLLING_MS = 200
+	private val POLLING_MS = 200L
 	private val mainThreadRun = AtomicReference<Runnable>()
 	private val forceFullTrans = 255
 	private val activeTrans = 225
@@ -33,10 +33,7 @@ object TransparentWindows {
 	private fun exit() {
 		exit = true
 		mainThread!!.interrupt()
-		try {
-			Thread.sleep(200)
-		} catch (ignored: InterruptedException) {
-		}
+		Thread.sleep(POLLING_MS * 2)
 
 		clearTransparencies()
 		if (trayIcon != null)
@@ -44,17 +41,13 @@ object TransparentWindows {
 		System.exit(0)
 	}
 
-	private fun changeStyle(r: Runnable) {
+	private fun runInMainThread(r: Runnable) {
 		val run = Runnable {
 			clearTransparencies()
 			r.run()
 		}
 		while (!mainThreadRun.compareAndSet(null, run)) {
-			try {
-				Thread.sleep(POLLING_MS.toLong())
-			} catch (ignored: InterruptedException) {
-			}
-
+			Thread.sleep(POLLING_MS)
 		}
 	}
 
@@ -69,11 +62,7 @@ object TransparentWindows {
 		trayIcon = TrayIcon(image, "Transparent Windows", popup)
 		trayIcon!!.addActionListener(listener)
 		trayIcon!!.isImageAutoSize = true
-		try {
-			tray.add(trayIcon!!)
-		} catch (e: AWTException) {
-			e.printStackTrace()
-		}
+		tray.add(trayIcon!!)
 
 		Runtime.getRuntime().addShutdownHook(object : Thread() {
 			override fun start() {
@@ -87,7 +76,6 @@ object TransparentWindows {
 			windowWrapper.setAlpha(255)
 		}
 
-		val taskBar = taskBar
 		taskBar?.setAlpha(255)
 	}
 
@@ -145,7 +133,7 @@ object TransparentWindows {
 				windowWrapper.visible = 2
 			}
 
-			windowWrapper.setAlpha(windowWrapper.alphaForVisiblity())
+			windowWrapper.setAlpha(windowWrapper.alphaForVisibility())
 		}
 
 	}
@@ -188,9 +176,7 @@ object TransparentWindows {
 		return true
 	}
 
-	private // minimized
-		// workaround - rects oversized?
-	val windows: MutableList<WindowWrapper>
+	private val windows: MutableList<WindowWrapper>
 		get() {
 			val windows = ArrayList<WindowWrapper>()
 			val order = ArrayList<HWND>()
@@ -213,6 +199,7 @@ object TransparentWindows {
 							return@WNDENUMPROC true
 						}
 
+						// workaround - rects oversized?
 						val shrinkFactor = 20
 
 						r.left = r.left + shrinkFactor
@@ -244,14 +231,13 @@ object TransparentWindows {
 			override fun run() {
 				while (true) {
 					try {
-						Thread.sleep(POLLING_MS.toLong())
+						Thread.sleep(POLLING_MS)
 					} catch (e: InterruptedException) {
 						if (exit)
 							return
 					}
 
-					val run = mainThreadRun.getAndSet(null)
-					run?.run()
+					mainThreadRun.getAndSet(null)?.run()
 
 					val active = User32Fast.GetForegroundWindow()
 					if (active == lastActive) {
@@ -264,7 +250,6 @@ object TransparentWindows {
 				}
 			}
 		}
-		val taskBar = taskBar
 		taskBar?.setAlpha(activeTrans)
 
 		mainThread!!.start()
@@ -273,9 +258,7 @@ object TransparentWindows {
 
 	private val taskBar: WindowWrapper?
 		get() {
-			val hWnd = User32Fast.FindWindowA("Shell_TrayWnd", null) ?: return null
-
-			return WindowWrapper(hWnd)
+			return WindowWrapper(User32Fast.FindWindowA("Shell_TrayWnd", null) ?: return null)
 		}
 
 	private class WindowOccluder internal constructor(area: RECT) {
@@ -416,7 +399,7 @@ object TransparentWindows {
 			return String.format("%s : \"%s\"", rect, title)
 		}
 
-		internal fun alphaForVisiblity(): Int {
+		internal fun alphaForVisibility(): Int {
 			when (visible) {
 				0 -> return backTrans
 				1 -> return foreInactiveTrans
