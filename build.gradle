@@ -44,9 +44,8 @@ launch4j {
 
 afterEvaluate {
 	copyL4jBinLib.doLast {
-		try {
+		//try {
 			Runtime.getRuntime().exec("chmod -R +x build/launch4j/").waitFor()
-		} catch (IOException ignored) {
-		}
+		//} catch (IOException ignored) {}
 	}
 }
