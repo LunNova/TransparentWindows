@@ -61,7 +61,7 @@ class WindowWrapper internal constructor(internal var hwnd: WinDef.HWND) {
 		}
 		val alpha = alpha
 		if (alpha != 255 && alpha != TransparentWindows.forceFullTrans && alpha != TransparentWindows.foreInactiveTrans && alpha != TransparentWindows.activeTrans && alpha != TransparentWindows.backTrans) {
-			println(title + " alpha is " + alpha)
+			TransparentWindows.debugPrint { title + " alpha is " + alpha }
 			return false
 		}
 		setInvisible(value == 0)

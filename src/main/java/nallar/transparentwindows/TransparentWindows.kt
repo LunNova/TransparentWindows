@@ -17,12 +17,10 @@ import javax.swing.JOptionPane
 
 object TransparentWindows {
 	private val POLLING_MS = 100L
-	private val mainThreadRun = AtomicReference<Runnable>()
-	val forceFullTrans = 255
-	private var exit: Boolean = false
+	private val mainThreadRun = AtomicReference<() -> Unit>()
 	private var lastActive: HWND? = null
-	private var mainThread: Thread? = null
 	private var trayIcon: TrayIcon? = null
+	val forceFullTrans = 255
 	var activeTrans = 225
 	var foreInactiveTrans = 225
 	var backTrans = 0
@@ -32,33 +30,26 @@ object TransparentWindows {
 	}
 
 	private fun exit() {
-		exit = true
-		mainThread!!.interrupt()
-		Thread.sleep(POLLING_MS * 2)
-
-		clearTransparencies()
-		if (trayIcon != null)
-			SystemTray.getSystemTray().remove(trayIcon)
-		System.exit(0)
+		runInMainThread {
+			clearTransparencies()
+			if (trayIcon != null)
+				SystemTray.getSystemTray().remove(trayIcon)
+			System.exit(0)
+		}
 	}
 
 	private fun setForeInactiveTrans(s: String) {
 		val t = s.toInt()
-		runInMainThread(Runnable { foreInactiveTrans = t; })
+		runInMainThread { clearTransparencies(); foreInactiveTrans = t; }
 	}
 
-	private fun runInMainThread(r: Runnable) {
-		val run = Runnable {
-			clearTransparencies()
-			r.run()
-		}
-		while (!mainThreadRun.compareAndSet(null, run)) {
+	private fun runInMainThread(r: () -> Unit) {
+		while (!mainThreadRun.compareAndSet(null, r)) {
 			Thread.sleep(POLLING_MS)
 		}
 	}
 
 	private fun setupSystemTray() {
-		val tray = SystemTray.getSystemTray()
 		val image = Toolkit.getDefaultToolkit().getImage(TransparentWindows::class.java.getResource("/icon.png"))
 		val listener = ActionListener { e -> exit() }
 		val popup = PopupMenu()
@@ -71,13 +62,9 @@ object TransparentWindows {
 		trayIcon = TrayIcon(image, "Transparent Windows", popup)
 		trayIcon!!.addActionListener(listener)
 		trayIcon!!.isImageAutoSize = true
-		tray.add(trayIcon!!)
+		SystemTray.getSystemTray().add(trayIcon!!)
 
-		Runtime.getRuntime().addShutdownHook(object : Thread() {
-			override fun start() {
-				exit()
-			}
-		})
+		Runtime.getRuntime().addShutdownHook(Thread { exit(); })
 	}
 
 	private fun clearTransparencies() {
@@ -235,35 +222,21 @@ object TransparentWindows {
 		}
 
 	fun start() {
-		mainThread = object : Thread() {
-			internal var lastActive: HWND? = null
-
-			override fun run() {
-				while (true) {
-					try {
-						Thread.sleep(POLLING_MS)
-					} catch (e: InterruptedException) {
-						if (exit)
-							return
-					}
-
-					mainThreadRun.getAndSet(null)?.run()
-
-					val active = User32Fast.GetForegroundWindow()
-					if (active == lastActive) {
-						continue
-					}
-					if (exit)
-						return
-					lastActive = active
-					setTransparencies(active)
-				}
-			}
-		}
 		taskBar?.setAlpha(activeTrans)
-
-		mainThread!!.start()
 		setupSystemTray()
+
+		var lastForeground: HWND? = null
+		while (true) {
+			Thread.sleep(POLLING_MS)
+			mainThreadRun.getAndSet(null)?.invoke()
+
+			val foreground = User32Fast.GetForegroundWindow()
+			if (foreground == lastForeground)
+				continue
+
+			lastForeground = foreground
+			setTransparencies(foreground)
+		}
 	}
 
 	private val taskBar: WindowWrapper?
