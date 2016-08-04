@@ -39,6 +39,7 @@ wrapper {
 launch4j {
 	mainClassName = project.mainClassName
 	headerType = 'console'
-	// TODO: icon = file('src/main/resources/icon.ico').absolutePath
+	icon = file('src/main/resources/icon.ico').absolutePath
+	manifest = file('src/main/resources/manifest.xml').absolutePath
 }
 
