@@ -42,10 +42,3 @@ launch4j {
 	// TODO: icon = file('src/main/resources/icon.ico').absolutePath
 }
 
-afterEvaluate {
-	createExeWithJar.doFirst {
-		//try {
-		Runtime.getRuntime().exec("chmod -R 0777 \"" + file("build/launch4j").absolutePath + "\"").waitFor()
-		//} catch (IOException ignored) {}
-	}
-}
