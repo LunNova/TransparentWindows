@@ -62,12 +62,12 @@ object TransparentWindows {
 		val image = Toolkit.getDefaultToolkit().getImage(TransparentWindows::class.java.getResource("/icon.png"))
 		val listener = ActionListener { e -> exit() }
 		val popup = PopupMenu()
-		val defaultItem = MenuItem("Exit")
-		defaultItem.addActionListener(listener)
-		popup.add(defaultItem)
 		val setForeInactiveTransItem = MenuItem("Set Inactive Transparency")
 		setForeInactiveTransItem.addActionListener { setForeInactiveTrans(JOptionPane.showInputDialog("Set transparency level", foreInactiveTrans)) }
 		popup.add(setForeInactiveTransItem)
+		val defaultItem = MenuItem("Exit")
+		defaultItem.addActionListener(listener)
+		popup.add(defaultItem)
 		trayIcon = TrayIcon(image, "Transparent Windows", popup)
 		trayIcon!!.addActionListener(listener)
 		trayIcon!!.isImageAutoSize = true
