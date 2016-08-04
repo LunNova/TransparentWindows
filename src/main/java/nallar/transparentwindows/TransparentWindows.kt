@@ -234,7 +234,7 @@ object TransparentWindows {
 			return windows
 		}
 
-	@JvmStatic fun start() {
+	fun start() {
 		mainThread = object : Thread() {
 			internal var lastActive: HWND? = null
 
