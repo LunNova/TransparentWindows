@@ -13,13 +13,14 @@ import java.awt.*
 import java.awt.event.ActionListener
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
+import javax.swing.JOptionPane
 
 object TransparentWindows {
 	private val POLLING_MS = 200L
 	private val mainThreadRun = AtomicReference<Runnable>()
 	private val forceFullTrans = 255
 	private val activeTrans = 225
-	private val foreInactiveTrans = 225
+	private var foreInactiveTrans = 225
 	private val backTrans = 0
 	private var exit: Boolean = false
 	private var lastActive: HWND? = null
@@ -41,6 +42,11 @@ object TransparentWindows {
 		System.exit(0)
 	}
 
+	private fun setForeInactiveTrans(s: String) {
+		val t = s.toInt()
+		runInMainThread(Runnable { foreInactiveTrans = t; })
+	}
+
 	private fun runInMainThread(r: Runnable) {
 		val run = Runnable {
 			clearTransparencies()
@@ -59,6 +65,9 @@ object TransparentWindows {
 		val defaultItem = MenuItem("Exit")
 		defaultItem.addActionListener(listener)
 		popup.add(defaultItem)
+		val setForeInactiveTransItem = MenuItem("Set Inactive Transparency")
+		setForeInactiveTransItem.addActionListener { setForeInactiveTrans(JOptionPane.showInputDialog("Set transparency level", foreInactiveTrans)) }
+		popup.add(setForeInactiveTransItem)
 		trayIcon = TrayIcon(image, "Transparent Windows", popup)
 		trayIcon!!.addActionListener(listener)
 		trayIcon!!.isImageAutoSize = true
@@ -76,7 +85,7 @@ object TransparentWindows {
 			windowWrapper.setAlpha(255)
 		}
 
-		taskBar?.setAlpha(255)
+		taskBar?.setAlpha(foreInactiveTrans)
 	}
 
 	private fun setTransparencies(active: HWND?) {
