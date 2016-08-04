@@ -68,8 +68,8 @@ class WindowWrapper internal constructor(internal var hwnd: WinDef.HWND) {
 		if (alpha != value)
 			User32Fast.SetLayeredWindowAttributes(hwnd, 0, value.toByte(), WinUser.LWA_ALPHA)
 
-		TransparentWindows.debugPrint("Set $title to $value")
-		TransparentWindows.debugPrint(Win32Exception(Kernel32.INSTANCE.GetLastError()).message!!)
+		TransparentWindows.debugPrint { "Set $title to $value" }
+		TransparentWindows.debugPrint { Win32Exception(Kernel32.INSTANCE.GetLastError()).message!! }
 
 		if (value >= 255)
 			setTransparent(false)
