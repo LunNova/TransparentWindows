@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JOptionPane
 
 object TransparentWindows {
-	private val POLLING_MS = 200L
+	private val POLLING_MS = 100L
 	private val mainThreadRun = AtomicReference<Runnable>()
 	val forceFullTrans = 255
 	private var exit: Boolean = false
