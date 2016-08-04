@@ -42,3 +42,11 @@ launch4j {
 	// TODO: icon = file('src/main/resources/icon.ico').absolutePath
 }
 
+afterEvaluate {
+	copyL4jBinLib.doLast {
+		try {
+			Runtime.getRuntime().exec("chmod -R +x build/launch4j/").waitFor()
+		} catch (IOException ignored) {
+		}
+	}
+}
