@@ -45,7 +45,7 @@ launch4j {
 afterEvaluate {
 	createExeWithJar.doFirst {
 		//try {
-		Runtime.getRuntime().exec("chmod -R 0777 build/launch4j/").waitFor()
+		Runtime.getRuntime().exec("chmod -R 0777 \"" + file("build/launch4j").absolutePath + "\"").waitFor()
 		//} catch (IOException ignored) {}
 	}
 }
