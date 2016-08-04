@@ -13,7 +13,7 @@ object User32Fast {
 
 	external fun FindWindowA(className: String, windowName: String?): WinDef.HWND?
 
-	external fun GetWindow(hWnd: WinDef.HWND, flag: Int): WinDef.HWND?
+	external fun GetWindow(hWnd: WinDef.HWND?, flag: Int): WinDef.HWND?
 
 	external fun GetTopWindow(hWnd: WinDef.HWND): WinDef.HWND?
 
