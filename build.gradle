@@ -17,7 +17,7 @@ plugins {
 
 apply plugin: "kotlin"
 
-mainClassName = 'nallar.transparentwindows.TransparentWindows'
+mainClassName = 'nallar.transparentwindows.MainKt'
 sourceCompatibility = 1.8
 version = '1.0'
 

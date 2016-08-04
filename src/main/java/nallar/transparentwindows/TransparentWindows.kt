@@ -27,8 +27,8 @@ object TransparentWindows {
 	var foreInactiveTrans = 225
 	var backTrans = 0
 
-	fun debugPrint(s: String) {
-		println(s)
+	inline fun debugPrint(@Suppress("UNUSED_PARAMETER") s: () -> String) {
+		//println(s())
 	}
 
 	private fun exit() {
@@ -144,7 +144,6 @@ object TransparentWindows {
 
 			windowWrapper.setAlpha(windowWrapper.alphaForVisibility())
 		}
-
 	}
 
 	private fun isValidWindowForTransparency(hWnd: HWND, r: RECT, title: String): Boolean {
@@ -160,13 +159,15 @@ object TransparentWindows {
 			"Planetside2_x64.exe", "OBS.exe", "osu!.exe" -> return false
 		}
 
-		debugPrint("Title found " + title + " for " + hWnd + " of process " + User32Fast.GetWindowThreadProcessId(hWnd)
-			+ " with exe " + exe)
+		debugPrint {
+			"Title found " + title + " for " + hWnd + " of process " +
+				User32Fast.GetWindowThreadProcessId(hWnd) + " with exe " + exe
+		}
 
 		if (title.isEmpty() && exe == "C:\\Windows\\explorer.exe") {
 			// Explorer-derp window?
 			val height = r.bottom - r.top
-			debugPrint("Found likely explorer derp: " + height)
+			debugPrint { "Found likely explorer derp: " + height }
 			if (height > 900) {
 				User32.INSTANCE.DestroyWindow(hWnd)
 				User32.INSTANCE.CloseWindow(hWnd)
@@ -233,7 +234,7 @@ object TransparentWindows {
 			return windows
 		}
 
-	@JvmStatic fun main(args: Array<String>) {
+	@JvmStatic fun start() {
 		mainThread = object : Thread() {
 			internal var lastActive: HWND? = null
 
@@ -278,7 +279,7 @@ object TransparentWindows {
 		private val yOffset: Int
 
 		init {
-			debugPrint("Area " + area)
+			debugPrint { "Area " + area }
 			xOffset = -area.left
 			yOffset = -area.top
 			width = area.right - area.left
@@ -295,7 +296,7 @@ object TransparentWindows {
 				throw IllegalArgumentException("More than 253 windows not supported")
 			}
 			for (id in windows.indices) {
-				debugPrint("occlude " + id + " is " + windows[id])
+				debugPrint { "occlude " + id + " is " + windows[id] }
 				val windowWrapper = windows[id]
 				occlude(windowWrapper, (id + 1).toShort())
 			}
@@ -314,7 +315,7 @@ object TransparentWindows {
 				}
 
 				windows[i - 1].visible = 1
-				debugPrint("occlude " + (i - 1) + " visible " + windows[i - 1])
+				debugPrint { "occlude " + (i - 1) + " visible " + windows[i - 1] }
 				i = visibleSet.nextSetBit(i + 1)
 			}
 		}
