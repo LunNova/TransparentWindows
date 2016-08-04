@@ -2,13 +2,13 @@ package nallar.transparentwindows
 
 import com.sun.jna.Native
 import com.sun.jna.Pointer
-import com.sun.jna.platform.win32.*
-import com.sun.jna.platform.win32.BaseTSD.LONG_PTR
+import com.sun.jna.platform.win32.User32
+import com.sun.jna.platform.win32.WinDef
 import com.sun.jna.platform.win32.WinDef.HWND
 import com.sun.jna.platform.win32.WinDef.RECT
-import com.sun.jna.ptr.ByteByReference
-import com.sun.jna.ptr.IntByReference
+import com.sun.jna.platform.win32.WinUser
 import nallar.transparentwindows.jna.User32Fast
+import nallar.transparentwindows.jna.WindowWrapper
 import java.awt.*
 import java.awt.event.ActionListener
 import java.util.*
@@ -18,16 +18,16 @@ import javax.swing.JOptionPane
 object TransparentWindows {
 	private val POLLING_MS = 200L
 	private val mainThreadRun = AtomicReference<Runnable>()
-	private val forceFullTrans = 255
-	private val activeTrans = 225
-	private var foreInactiveTrans = 225
-	private val backTrans = 0
+	val forceFullTrans = 255
 	private var exit: Boolean = false
 	private var lastActive: HWND? = null
 	private var mainThread: Thread? = null
 	private var trayIcon: TrayIcon? = null
+	var activeTrans = 225
+	var foreInactiveTrans = 225
+	var backTrans = 0
 
-	private fun debugPrint(s: String) {
+	fun debugPrint(s: String) {
 		println(s)
 	}
 
@@ -329,93 +329,4 @@ object TransparentWindows {
 		}
 	}
 
-	private class WindowWrapper internal constructor(internal var hwnd: HWND) {
-		internal var visible = 0 // 0 invisible, 1 transparent, 2 on top
-		internal var rect: RECT? = null
-		internal var title: String = ""
-
-		internal constructor(hwnd: HWND, rect: RECT, title: String) : this(hwnd) {
-			this.rect = rect
-			this.title = title
-		}
-
-		override fun equals(other: Any?): Boolean {
-			if (this === other) return true
-			if (other == null || javaClass != other.javaClass) return false
-
-			val that = other as WindowWrapper?
-
-			return hwnd == that!!.hwnd
-
-		}
-
-		internal val isTransparent: Boolean
-			get() {
-				val data = User32Fast.GetWindowLongPtrA(hwnd, WinUser.GWL_EXSTYLE)
-				return data.toInt() and WinUser.WS_EX_LAYERED == WinUser.WS_EX_LAYERED
-			}
-
-		internal fun setTransparent(enable: Boolean): Boolean {
-			if (!enable && !isTransparent) {
-				return true
-			}
-			val data = User32Fast.GetWindowLongPtrA(hwnd, WinUser.GWL_EXSTYLE)
-			User32Fast.SetWindowLongPtrA(hwnd, WinUser.GWL_EXSTYLE, LONG_PTR((data.toInt() or WinUser.WS_EX_LAYERED).toLong()))
-			return true
-		}
-
-		internal val alpha: Int
-			get() {
-				val alpha = ByteByReference()
-				val attr = IntByReference()
-				User32Fast.GetLayeredWindowAttributes(hwnd, IntByReference(), alpha, attr)
-				if (attr.value and WinUser.LWA_ALPHA == WinUser.LWA_ALPHA) {
-					return (alpha.value.toInt() and 0xFF)
-				}
-				return 255
-			}
-
-		internal fun setInvisible(enabled: Boolean) {
-			// TODO
-		}
-
-		internal fun setAlpha(value: Int): Boolean {
-			if (value < 255 && !setTransparent(true)) {
-				return false
-			}
-			val alpha = alpha
-			if (alpha != 255 && alpha != forceFullTrans && alpha != foreInactiveTrans && alpha != activeTrans && alpha != backTrans) {
-				println(title + " alpha is " + alpha)
-				return false
-			}
-			setInvisible(value == 0)
-			if (alpha != value)
-				User32Fast.SetLayeredWindowAttributes(hwnd, 0, value.toByte(), WinUser.LWA_ALPHA)
-
-			debugPrint("Set $title to $value")
-			debugPrint(Win32Exception(Kernel32.INSTANCE.GetLastError()).message!!)
-
-			if (value >= 255)
-				setTransparent(false)
-			return true
-		}
-
-		override fun hashCode(): Int {
-			return hwnd.hashCode()
-		}
-
-		override fun toString(): String {
-			return String.format("%s : \"%s\"", rect, title)
-		}
-
-		internal fun alphaForVisibility(): Int {
-			when (visible) {
-				0 -> return backTrans
-				1 -> return foreInactiveTrans
-				2 -> return activeTrans
-				3 -> return forceFullTrans
-			}
-			throw RuntimeException("unexpected visible " + visible)
-		}
-	}
 }
