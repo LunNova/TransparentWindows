@@ -179,13 +179,13 @@ object TransparentWindows {
 	private val windows: MutableList<WindowWrapper>
 		get() {
 			val windows = ArrayList<WindowWrapper>()
-			val order = ArrayList<HWND>()
-			var top: HWND = User32Fast.GetTopWindow(HWND(Pointer(0)))!!
+			val order = ArrayList<HWND?>()
+			var top: HWND? = User32Fast.GetTopWindow(HWND(Pointer(0)))!!
 			var lastTop: HWND? = null
 			while (top != lastTop) {
 				lastTop = top
 				order.add(top)
-				top = User32Fast.GetWindow(top, User32.GW_HWNDNEXT)!!
+				top = User32Fast.GetWindow(top, User32.GW_HWNDNEXT)
 			}
 			User32Fast.EnumWindows(WinUser.WNDENUMPROC { hWnd, lParam ->
 				if (User32Fast.IsWindowVisible(hWnd)) {
@@ -361,7 +361,7 @@ object TransparentWindows {
 				val attr = IntByReference()
 				User32Fast.GetLayeredWindowAttributes(hwnd, IntByReference(), alpha, attr)
 				if (attr.value and WinUser.LWA_ALPHA == WinUser.LWA_ALPHA) {
-					return alpha.value.toInt()
+					return (alpha.value.toInt() and 0xFF)
 				}
 				return 255
 			}

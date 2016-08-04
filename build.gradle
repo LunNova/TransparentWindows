@@ -12,6 +12,7 @@ plugins {
 	id 'java'
 	id 'application'
 	id 'com.github.johnrengelman.shadow' version '1.2.3'
+	id 'edu.sc.seis.launch4j' version '1.6.2'
 }
 
 apply plugin: "kotlin"
@@ -34,3 +35,10 @@ dependencies {
 wrapper {
 	gradleVersion = '2.14.1'
 }
+
+launch4j {
+	mainClassName = project.mainClassName
+	headerType = 'console'
+	// TODO: icon = file('src/main/resources/icon.ico').absolutePath
+}
+
