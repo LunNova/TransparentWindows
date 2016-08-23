@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JOptionPane
 
 object TransparentWindows {
+	private val mainThread = Thread.currentThread()
 	private val POLLING_MS = 100L
 	private val mainThreadRun = AtomicReference<() -> Unit>()
 	private var lastActive: HWND? = null
@@ -36,6 +37,8 @@ object TransparentWindows {
 				SystemTray.getSystemTray().remove(trayIcon)
 			System.exit(0)
 		}
+		mainThread.interrupt()
+		Thread.sleep(POLLING_MS)
 	}
 
 	private fun setForeInactiveTrans(s: String) {
@@ -69,13 +72,21 @@ object TransparentWindows {
 
 	private fun clearTransparencies() {
 		for (windowWrapper in windows) {
-			windowWrapper.setAlpha(255)
+			windowWrapper.setAlpha(forceFullTrans)
 		}
 
 		taskBar?.setAlpha(foreInactiveTrans)
+
+		lastActive = null
 	}
 
 	private fun setTransparencies(active: HWND?) {
+		val tb = taskBar
+		if (tb != null) {
+			tb.setAlpha(foreInactiveTrans)
+			User32Fast.SetWindowAccent(tb.hwnd)
+		}
+
 		val windows = windows
 
 		val area = RECT()
@@ -154,8 +165,8 @@ object TransparentWindows {
 		if (title.isEmpty() && exe == "C:\\Windows\\explorer.exe") {
 			// Explorer-derp window?
 			val height = r.bottom - r.top
-			debugPrint { "Found likely explorer derp: " + height }
 			if (height > 900) {
+				debugPrint { "Found likely explorer derp: $height $hWnd" }
 				User32.INSTANCE.DestroyWindow(hWnd)
 				User32.INSTANCE.CloseWindow(hWnd)
 			}
@@ -222,12 +233,14 @@ object TransparentWindows {
 		}
 
 	fun start() {
-		taskBar?.setAlpha(activeTrans)
 		setupSystemTray()
 
 		var lastForeground: HWND? = null
 		while (true) {
-			Thread.sleep(POLLING_MS)
+			try {
+				Thread.sleep(POLLING_MS)
+			} catch (ignored: InterruptedException) {
+			}
 			mainThreadRun.getAndSet(null)?.invoke()
 
 			val foreground = User32Fast.GetForegroundWindow()
