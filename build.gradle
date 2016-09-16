@@ -33,13 +33,13 @@ dependencies {
 }
 
 wrapper {
-	gradleVersion = '2.14.1'
+	gradleVersion = '3.0'
 }
 
 launch4j {
 	mainClassName = project.mainClassName
 	headerType = 'gui'
-	opt = "-XX:+UseG1GC -Xms32m -Xmx32m -Xss256k"
+	opt = "-XX:+UseG1GC -Xms32m -Xmx32m -Xss384k"
 	icon = file('src/main/resources/icon.ico').absolutePath
 	manifest = file('src/main/resources/manifest.xml').absolutePath
 }
