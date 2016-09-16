@@ -154,7 +154,7 @@ object TransparentWindows {
 		val exeLast = exe.substring(exe.lastIndexOf('\\') + 1)
 
 		when (exeLast) {
-			"Planetside2_x64.exe", "OBS.exe", "osu!.exe" -> return false
+			"Planetside2_x64.exe", "OBS.exe", "osu!.exe", "unknown.exe" -> return false
 		}
 
 		debugPrint {
@@ -196,7 +196,7 @@ object TransparentWindows {
 				top = User32Fast.GetWindow(top, User32.GW_HWNDNEXT)
 			}
 			User32Fast.EnumWindows(WinUser.WNDENUMPROC { hWnd, lParam ->
-				if (User32Fast.IsWindowVisible(hWnd)) {
+				if (hWnd != null && User32Fast.IsWindowVisible(hWnd)) {
 					val r = RECT()
 					User32Fast.GetWindowRect(hWnd, r)
 					if (r.left > -32000) {
@@ -241,14 +241,18 @@ object TransparentWindows {
 				Thread.sleep(POLLING_MS)
 			} catch (ignored: InterruptedException) {
 			}
-			mainThreadRun.getAndSet(null)?.invoke()
+			try {
+				mainThreadRun.getAndSet(null)?.invoke()
 
-			val foreground = User32Fast.GetForegroundWindow()
-			if (foreground == lastForeground)
-				continue
+				val foreground = User32Fast.GetForegroundWindow()
+				if (foreground == lastForeground)
+					continue
 
-			lastForeground = foreground
-			setTransparencies(foreground)
+				lastForeground = foreground
+				setTransparencies(foreground)
+			} catch (t: Throwable) {
+				t.printStackTrace()
+			}
 		}
 	}
 

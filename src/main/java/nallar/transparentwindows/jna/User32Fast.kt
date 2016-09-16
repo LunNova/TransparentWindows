@@ -107,7 +107,7 @@ object User32Fast {
 
 	fun GetWindowExe(hWnd: WinDef.HWND): String {
 		val pid = GetWindowThreadProcessId(hWnd)
-		val process = Kernel32.INSTANCE.OpenProcess(0x1000, false, pid)
+		val process = Kernel32.INSTANCE.OpenProcess(0x1000, false, pid) ?: return "unknown.exe"
 		val exePathname = ByteArray(512)
 		val result = Psapi.INSTANCE.GetModuleFileNameExA(process, Pointer(0), exePathname, 512)
 		return Native.toString(exePathname).substring(0, result)

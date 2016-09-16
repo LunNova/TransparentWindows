@@ -71,8 +71,9 @@ class WindowWrapper internal constructor(internal var hwnd: WinDef.HWND) {
 		TransparentWindows.debugPrint { "Set $title to $value" }
 		TransparentWindows.debugPrint { Win32Exception(Kernel32.INSTANCE.GetLastError()).message!! }
 
-		if (value <= TransparentWindows.foreInactiveTrans)
-			User32Fast.SetWindowAccent(hwnd)
+		// TODO: Should we actually do this? Causes bugs...
+//		if (value <= TransparentWindows.foreInactiveTrans)
+//			User32Fast.SetWindowAccent(hwnd)
 
 		if (value >= 255)
 			setTransparent(false)
