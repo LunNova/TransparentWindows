@@ -21,6 +21,7 @@ object TransparentWindows {
 	private val mainThreadRun = AtomicReference<() -> Unit>()
 	private var lastActive: HWND? = null
 	private var trayIcon: TrayIcon? = null
+	private val windowOccluder: WindowOccluder = WindowOccluder()
 	val forceFullTrans = 255
 	var activeTrans = 225
 	var foreInactiveTrans = 225
@@ -88,18 +89,6 @@ object TransparentWindows {
 		}
 
 		val windows = windows
-
-		val area = RECT()
-
-		for (w in windows) {
-			val inner = w.rect!!
-			area.left = Math.min(area.left, inner.left)
-			area.top = Math.min(area.top, inner.top)
-			area.right = Math.max(area.right, inner.right)
-			area.bottom = Math.max(area.bottom, inner.bottom)
-		}
-
-		val windowOccluder = WindowOccluder(area)
 		windowOccluder.occlude(windows)
 
 		var activeWindowWrapper: WindowWrapper? = null
@@ -260,64 +249,5 @@ object TransparentWindows {
 		get() {
 			return WindowWrapper(User32Fast.FindWindowA("Shell_TrayWnd", null) ?: return null)
 		}
-
-	private class WindowOccluder internal constructor(area: RECT) {
-		private val screen: ShortArray
-		private val width: Int
-		private val height: Int
-		private val xOffset: Int
-		private val yOffset: Int
-
-		init {
-			debugPrint { "Area " + area }
-			xOffset = -area.left
-			yOffset = -area.top
-			width = area.right - area.left
-			height = area.bottom - area.top
-			screen = ShortArray((area.bottom - area.top) * (area.right - area.left))
-		}
-
-		private fun lookup(x: Int, y: Int): Int {
-			return (y + yOffset) * width + x + xOffset
-		}
-
-		internal fun occlude(windows: List<WindowWrapper>) {
-			if (windows.size >= 254) {
-				throw IllegalArgumentException("More than 253 windows not supported")
-			}
-			for (id in windows.indices) {
-				debugPrint { "occlude " + id + " is " + windows[id] }
-				val windowWrapper = windows[id]
-				occlude(windowWrapper, (id + 1).toShort())
-			}
-			val visibleSet = BitSet()
-			for (id in screen) {
-				if (id.toInt() != 0) {
-					visibleSet.set(id.toInt())
-				}
-			}
-
-			var i = visibleSet.nextSetBit(0)
-			while (i != -1) {
-				if (i == 0) {
-					i = visibleSet.nextSetBit(i + 1)
-					continue
-				}
-
-				windows[i - 1].visible = 1
-				debugPrint { "occlude " + (i - 1) + " visible " + windows[i - 1] }
-				i = visibleSet.nextSetBit(i + 1)
-			}
-		}
-
-		internal fun occlude(w: WindowWrapper, id: Short) {
-			val r = w.rect!!
-			for (y in r.top..r.bottom - 1) {
-				for (x in r.left..r.right - 1) {
-					screen[lookup(x, y)] = id
-				}
-			}
-		}
-	}
 
 }
