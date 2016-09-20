@@ -39,7 +39,7 @@ wrapper {
 launch4j {
 	mainClassName = project.mainClassName
 	headerType = 'gui'
-	opt = "-XX:+UseG1GC -Xms32m -Xmx32m -Xss384k"
+	opt = "-XX:MaxMetaspaceSize=12m -Xms24m -Xmx24m -Xss256k"
 	icon = file('src/main/resources/icon.ico').absolutePath
 	manifest = file('src/main/resources/manifest.xml').absolutePath
 }

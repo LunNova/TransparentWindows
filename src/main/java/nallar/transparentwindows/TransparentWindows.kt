@@ -173,10 +173,14 @@ object TransparentWindows {
 		return true
 	}
 
+	val windowsList: MutableList<WindowWrapper> = mutableListOf()
+	val windowOrder: MutableList<HWND?> = mutableListOf()
 	private val windows: MutableList<WindowWrapper>
 		get() {
-			val windows = ArrayList<WindowWrapper>()
-			val order = ArrayList<HWND?>()
+			val windows = windowsList
+			val order = windowOrder
+			windows.clear()
+			order.clear()
 			var top: HWND? = User32Fast.GetTopWindow(HWND(Pointer(0)))!!
 			var lastTop: HWND? = null
 			while (top != lastTop) {
@@ -216,7 +220,7 @@ object TransparentWindows {
 					}
 				}
 				true
-			}, Pointer(0))
+			}, null)
 			Collections.sort(windows) { o1, o2 -> order.indexOf(o2.hwnd) - order.indexOf(o1.hwnd) }
 			return windows
 		}

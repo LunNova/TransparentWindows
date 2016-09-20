@@ -26,7 +26,7 @@ object User32Fast {
 
 	external fun GetWindowTextA(hWnd: WinDef.HWND, lpString: ByteArray, nMaxCount: Int): Int
 
-	external fun EnumWindows(lpEnumFunc: WinUser.WNDENUMPROC, arg: Pointer): Boolean
+	external fun EnumWindows(lpEnumFunc: WinUser.WNDENUMPROC, arg: Pointer?): Boolean
 
 	external fun SetWindowLongPtrA(hWnd: WinDef.HWND, index: Int, newLong: BaseTSD.LONG_PTR): BaseTSD.LONG_PTR
 
