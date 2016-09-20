@@ -5,7 +5,7 @@ import nallar.transparentwindows.jna.WindowWrapper
 import java.util.*
 
 class WindowOccluder {
-	private var screen: ShortArray = ShortArray(0)
+	private var screen: ByteArray = ByteArray(0)
 	private var width: Int = 0
 	private var height: Int = 0
 	private var xOffset: Int = 0
@@ -13,7 +13,7 @@ class WindowOccluder {
 	private var size: Int = 0
 
 	init {
-		screen = ShortArray(0)
+		screen = ByteArray(0)
 	}
 
 	fun setArea(windows: List<WindowWrapper>) {
@@ -37,7 +37,12 @@ class WindowOccluder {
 			throw Exception("Area too large")
 
 		if (requiredSize > screen.size)
-			screen = ShortArray(requiredSize)
+			try {
+				screen = ByteArray(requiredSize)
+			} catch (oom: OutOfMemoryError) {
+				println("oom when requesting $requiredSize, previous size ${screen.size}")
+				throw oom
+			}
 		else
 			Arrays.fill(screen, 0, requiredSize, 0)
 
@@ -60,7 +65,7 @@ class WindowOccluder {
 		for (id in windows.indices) {
 			TransparentWindows.debugPrint { "occlude " + id + " is " + windows[id] }
 			val windowWrapper = windows[id]
-			occlude(windowWrapper, (id + 1).toShort())
+			occlude(windowWrapper, (id + 1).toByte())
 		}
 		val visibleSet = BitSet()
 
@@ -69,8 +74,8 @@ class WindowOccluder {
 		var i = 0
 		while (i < size) {
 			val x = screen[i]
-			if (x != 0.toShort()) {
-				visibleSet.set(x.toInt())
+			if (x != 0.toByte()) {
+				visibleSet.set(x.toInt() and 0xFF)
 			}
 			i++
 		}
@@ -89,7 +94,7 @@ class WindowOccluder {
 		}
 	}
 
-	internal fun occlude(w: WindowWrapper, id: Short) {
+	internal fun occlude(w: WindowWrapper, id: Byte) {
 		val r = w.rect!!
 		for (y in r.top..r.bottom - 1) {
 			for (x in r.left..r.right - 1) {
