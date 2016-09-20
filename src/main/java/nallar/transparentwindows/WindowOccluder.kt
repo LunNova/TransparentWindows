@@ -5,9 +5,11 @@ import nallar.transparentwindows.jna.WindowWrapper
 import java.util.*
 
 class WindowOccluder {
+	companion object {
+		private val maxWindows = 0xFE
+	}
 	private var screen: ByteArray = ByteArray(0)
 	private var width: Int = 0
-	private var height: Int = 0
 	private var xOffset: Int = 0
 	private var yOffset: Int = 0
 	private var size: Int = 0
@@ -47,7 +49,6 @@ class WindowOccluder {
 			Arrays.fill(screen, 0, requiredSize, 0)
 
 		this.width = width
-		this.height = height
 		size = requiredSize
 		xOffset = -area.left
 		yOffset = -area.top
@@ -58,8 +59,8 @@ class WindowOccluder {
 	}
 
 	internal fun occlude(windows: List<WindowWrapper>) {
-		if (windows.size >= 254) {
-			throw IllegalArgumentException("More than 253 windows not supported")
+		if (windows.size >= maxWindows) {
+			throw IllegalArgumentException("More than $maxWindows windows not supported")
 		}
 		setArea(windows)
 		for (id in windows.indices) {
@@ -71,16 +72,14 @@ class WindowOccluder {
 
 		val screen = screen
 		val size = size
-		var i = 0
-		while (i < size) {
+		for (i in 0..size - 1) {
 			val x = screen[i]
 			if (x != 0.toByte()) {
 				visibleSet.set(x.toInt() and 0xFF)
 			}
-			i++
 		}
 
-		i = visibleSet.nextSetBit(0)
+		var i = visibleSet.nextSetBit(0)
 		while (i != -1) {
 			if (i == 0) {
 				i = visibleSet.nextSetBit(i + 1)
